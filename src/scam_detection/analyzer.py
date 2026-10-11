@@ -10,7 +10,12 @@ import re
 from typing import List
 
 from src.rag.pipeline import _call_llm
-from src.rag.prompts import SYSTEM_PROMPT
+
+SCAM_SYSTEM_PROMPT = """You are LexAI's Cyber Scam & Fraud Analysis Assistant for Indian citizens.
+Your job is to analyze suspicious messages (SMS, WhatsApp, emails, phone threats) for fraud indicators like UPI scams, fake job offers, digital arrest, electricity bill fraud, KYC scams, lottery/gift scams, phishing links, etc.
+Provide a clear, practical assessment of the message's legitimacy, specific risks, and concrete protective steps under Indian cyber safety procedures (including cybercrime.gov.in and the national cyber helpline 1930).
+Always analyze the citizen's submitted message thoroughly according to the requested format.
+"""
 
 _RULES = {
     "UPI/Payment Fraud": [r"upi", r"refund.*click", r"kyc.*updat", r"otp.*shar"],
@@ -43,9 +48,9 @@ Respond in {language} with:
 1. Risk Level (Low / Medium / High)
 2. Likely Scam Type (if any)
 3. Why This Looks Suspicious (or why it looks legitimate)
-4. What the Citizen Should Do Now
-5. Where to Report It (e.g. cybercrime.gov.in, 1930 helpline)
-6. Disclaimer
+4. What the Citizen Should Do Now (practical protective steps)
+5. Where to Report It (e.g. cybercrime.gov.in, National Cybercrime Helpline 1930, Chakshu portal)
+6. Disclaimer (educational assistance, not a substitute for formal law enforcement reporting)
 """
-    analysis = _call_llm(SYSTEM_PROMPT, user_prompt)
+    analysis = _call_llm(SCAM_SYSTEM_PROMPT, user_prompt)
     return {"rule_based_flags": flags, "analysis": analysis}

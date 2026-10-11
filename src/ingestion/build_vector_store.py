@@ -35,7 +35,14 @@ def build_vector_store():
 
     os.makedirs(VECTOR_DB_DIR, exist_ok=True)
     client = chromadb.PersistentClient(path=VECTOR_DB_DIR)
-    collection = client.get_or_create_collection(COLLECTION_NAME)
+    try:
+        client.delete_collection(COLLECTION_NAME)
+    except Exception:
+        pass
+    collection = client.get_or_create_collection(
+        name=COLLECTION_NAME,
+        metadata={"hnsw:space": "cosine"},
+    )
 
     batch_size = 64
     for start in range(0, len(records), batch_size):
@@ -55,7 +62,10 @@ def build_vector_store():
             }
             for r in batch
         ]
-        embeddings = model.encode(texts, show_progress_bar=False).tolist()
+        try:
+            embeddings = model.encode(texts, normalize_embeddings=True).tolist()
+        except TypeError:
+            embeddings = model.encode(texts).tolist()
 
         collection.upsert(ids=ids, embeddings=embeddings, documents=texts, metadatas=metadatas)
         print(f"Indexed {min(start + batch_size, len(records))}/{len(records)} chunks")

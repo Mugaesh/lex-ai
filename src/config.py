@@ -37,7 +37,7 @@ GEMINI_MODEL = _setting("GEMINI_MODEL", "gemini-1.5-flash")
 OPENAI_API_KEY = _setting("OPENAI_API_KEY", "")
 OPENAI_MODEL = _setting("OPENAI_MODEL", "gpt-4o-mini")
 GROQ_API_KEY = _setting("GROQ_API_KEY", "")
-GROQ_MODEL = _setting("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL = _setting("GROQ_MODEL", "openai/gpt-oss-120b")
 OLLAMA_MODEL = _setting("OLLAMA_MODEL", "llama3.1")
 OLLAMA_HOST = _setting("OLLAMA_HOST", "http://localhost:11434")
 

@@ -48,14 +48,14 @@ def get_embedder():
     if _embedding_instance is not None:
         return _embedding_instance
 
-    # Check if local files only works without any network delay
+    # Load real neural multilingual sentence embedding model
     try:
         from sentence_transformers import SentenceTransformer
-        _embedding_instance = SentenceTransformer(EMBEDDING_MODEL, local_files_only=True)
-        print(f"Loaded locally cached SentenceTransformer: {EMBEDDING_MODEL}")
+        _embedding_instance = SentenceTransformer(EMBEDDING_MODEL)
+        print(f"Loaded SentenceTransformer: {EMBEDDING_MODEL}")
         return _embedding_instance
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"Notice loading SentenceTransformer ({exc}). Falling back.")
 
     # Use fast, deterministic multilingual dense vectorizer
     print(f"Using high-speed offline multilingual vectorizer (384-dim).")

@@ -68,15 +68,34 @@ def _call_groq(system: str, user: str) -> str:
     from groq import Groq
     api_key = GROQ_API_KEY or os.getenv("GROQ_API_KEY")
     client = Groq(api_key=api_key)
-    response = client.chat.completions.create(
-        model=GROQ_MODEL,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        temperature=0.2,
-    )
-    return response.choices[0].message.content or ""
+    models_to_try = [
+        GROQ_MODEL,
+        os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
+        "qwen/qwen3.8-27b",
+    ]
+    seen = set()
+    unique_models = [m for m in models_to_try if m and not (m in seen or seen.add(m))]
+
+    last_err = None
+    for model_name in unique_models:
+        try:
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                temperature=0.2,
+            )
+            return response.choices[0].message.content or ""
+        except Exception as e:
+            last_err = e
+            continue
+    if last_err:
+        raise last_err
+    return ""
 
 
 def _call_anthropic(system: str, user: str) -> str:
@@ -230,43 +249,53 @@ This information is provided by LexAI for educational and citizen awareness purp
 def _call_llm(system: str, user: str) -> str:
     provider = LLM_PROVIDER.lower()
     
-    # Check explicitly selected provider first
-    if provider == "gemini" or (provider == "auto" and (GEMINI_API_KEY or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))):
-        try:
-            return _call_gemini(system, user)
-        except Exception as e:
-            if provider == "gemini":
-                raise e
-    
-    if provider == "openai" or (provider == "auto" and (OPENAI_API_KEY or os.getenv("OPENAI_API_KEY"))):
-        try:
-            return _call_openai(system, user)
-        except Exception as e:
-            if provider == "openai":
+    def _dispatch():
+        if provider == "gemini" or (provider == "auto" and (GEMINI_API_KEY or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))):
+            try:
+                return _call_gemini(system, user)
+            except Exception as e:
+                if provider == "gemini":
+                    raise e
+        
+        if provider == "openai" or (provider == "auto" and (OPENAI_API_KEY or os.getenv("OPENAI_API_KEY"))):
+            try:
+                return _call_openai(system, user)
+            except Exception as e:
+                if provider == "openai":
+                    raise e
+
+        if provider == "anthropic" or (provider == "auto" and (ANTHROPIC_API_KEY and ANTHROPIC_API_KEY != "your_key_here")):
+            try:
+                return _call_anthropic(system, user)
+            except Exception as e:
+                if provider == "anthropic":
+                    raise e
+
+        if provider == "groq" or (provider == "auto" and (GROQ_API_KEY or os.getenv("GROQ_API_KEY"))):
+            try:
+                return _call_groq(system, user)
+            except Exception as e:
+                if provider == "groq":
+                    raise e
+
+        if provider == "ollama":
+            try:
+                return _call_ollama(system, user)
+            except Exception as e:
                 raise e
 
-    if provider == "anthropic" or (provider == "auto" and (ANTHROPIC_API_KEY and ANTHROPIC_API_KEY != "your_key_here")):
-        try:
-            return _call_anthropic(system, user)
-        except Exception as e:
-            if provider == "anthropic":
-                raise e
+        # Fallback to local grounded generation if no remote LLM key is configured
+        return _generate_grounded_fallback(system, user)
 
-    if provider == "groq" or (provider == "auto" and (GROQ_API_KEY or os.getenv("GROQ_API_KEY"))):
-        try:
-            return _call_groq(system, user)
-        except Exception as e:
-            if provider == "groq":
-                raise e
-
-    if provider == "ollama":
-        try:
-            return _call_ollama(system, user)
-        except Exception as e:
-            raise e
-
-    # Fallback to local grounded generation if no remote LLM key is configured
-    return _generate_grounded_fallback(system, user)
+    raw_result = _dispatch()
+    if raw_result:
+        for orig, repl in [
+            ("\u2011", "-"), ("\u2013", "-"), ("\u2014", "--"),
+            ("\u2018", "'"), ("\u2019", "'"), ("\u201c", '"'), ("\u201d", '"'),
+            ("\u00a0", " "), ("\u2026", "..."),
+        ]:
+            raw_result = raw_result.replace(orig, repl)
+    return raw_result
 
 
 class LexAIPipeline:

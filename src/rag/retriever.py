@@ -19,7 +19,11 @@ class Retriever:
     def search(
         self, query: str, top_k: int = TOP_K, category: Optional[str] = None
     ) -> List[dict]:
-        query_embedding = self._model.encode([query]).tolist()
+        try:
+            query_embedding = self._model.encode([query], normalize_embeddings=True).tolist()
+        except TypeError:
+            query_embedding = self._model.encode([query]).tolist()
+
         where = {"category": category} if category else None
 
         results = self._collection.query(
@@ -34,6 +38,8 @@ class Retriever:
         dists = results.get("distances", [[]])[0]
 
         for doc, meta, dist in zip(docs, metas, dists):
+            # For cosine distance, similarity is 1 - dist (clamped to [0, 1])
+            similarity = round(max(0.0, min(1.0, 1.0 - dist)), 3)
             hits.append(
                 {
                     "text": doc,
@@ -45,7 +51,7 @@ class Retriever:
                     "effective_date": meta.get("effective_date", ""),
                     "source_url": meta.get("source_url", ""),
                     "imported_at": meta.get("imported_at", ""),
-                    "score": round(1 - dist, 3),
+                    "score": similarity,
                 }
             )
         return hits

@@ -28,9 +28,15 @@ markdown, no commentary, no code fences) with exactly these keys:
 """
 
 
+COMPLAINT_SYSTEM_PROMPT = """You are LexAI's Legal Complaint Drafting Assistant for Indian citizens.
+Your job is to draft formal, structured complaints (Consumer, Police, Cybercrime, Labour, RTI, Tenancy, Grievance, etc.).
+You must ALWAYS respond with ONLY a valid JSON object matching the requested schema. Do not return commentary, markdown fences, or refusal text.
+"""
+
+
 def generate_complaint(situation: str, language: str = "English") -> dict:
     prompt = COMPLAINT_PROMPT.format(situation=situation, language=language)
-    result = call_llm_json(SYSTEM_PROMPT, prompt)
+    result = call_llm_json(COMPLAINT_SYSTEM_PROMPT, prompt)
     result["_situation"] = situation
     return result
 

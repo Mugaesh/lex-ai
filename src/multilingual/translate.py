@@ -106,10 +106,30 @@ def translate_text(text: str, target_lang: str) -> str:
 
     try:
         from deep_translator import GoogleTranslator
-        return GoogleTranslator(source="auto", target=target_lang).translate(text)
+        result = GoogleTranslator(source="auto", target=target_lang).translate(text)
+        if result and result.strip():
+            return result
     except Exception as e:
-        print(f"Translation notice: {e}. Returning original text.")
-        return text
+        print(f"Translation notice: {e}. Trying LLM fallback.")
+
+    # High-quality LLM translation fallback
+    try:
+        from src.rag.pipeline import _call_llm
+        lang_names = {"hi": "Hindi", "ta": "Tamil", "en": "English"}
+        tgt_name = lang_names.get(target_lang, target_lang)
+        prompt = (
+            f"You are a professional legal translator for Indian citizens. "
+            f"Translate the following legal text accurately into natural {tgt_name}. "
+            f"Do not add any intro, commentary, or markdown notes—output ONLY the translation.\n\n"
+            f"{text}"
+        )
+        translated = _call_llm("You are a professional legal translator.", prompt)
+        if translated and translated.strip():
+            return translated.strip()
+    except Exception as llm_err:
+        print(f"LLM translation notice: {llm_err}. Returning original text.")
+
+    return text
 
 
 def detect_and_translate_to_english(text: str) -> str:

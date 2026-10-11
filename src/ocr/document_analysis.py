@@ -97,6 +97,24 @@ def analyze_document(file_path: str, doc_type: str = "general", language: str = 
     if doc_type not in VALID_DOC_TYPES:
         doc_type = "general"
 
+DOCUMENT_SYSTEM_PROMPT = """You are LexAI's Legal Document Analysis Assistant for Indian citizens.
+Your job is to review citizen-uploaded legal agreements, notices, FIRs, employment contracts, rental deeds, or bank communications, explain them in plain language, identify rights, obligations, and risky/unfair terms, and outline next steps.
+Analyze the provided document text directly and provide the requested breakdown.
+Never present yourself as formal legal counsel, and always provide helpful, educational, and thorough analysis.
+"""
+
+
+def analyze_document(file_path: str, doc_type: str = "general", language: str = "English") -> dict:
+    """
+    Full pipeline: OCR/extract text from file_path -> call LLM with doc-type
+    specific prompt -> return structured analysis dict.
+
+    doc_type must be one of VALID_DOC_TYPES (fir, rental_agreement,
+    employment_contract, bank_notice, government_notice, general).
+    """
+    if doc_type not in VALID_DOC_TYPES:
+        doc_type = "general"
+
     raw_text = extract_text(file_path)
 
     user_prompt = f"""Below is extracted text from a citizen-uploaded {doc_type} document. \
@@ -113,7 +131,7 @@ Respond in {language} with:
 5. Suggested Next Steps for the Citizen
 6. Disclaimer (this is general information, not legal advice)
 """
-    analysis = _call_llm(SYSTEM_PROMPT, user_prompt)
+    analysis = _call_llm(DOCUMENT_SYSTEM_PROMPT, user_prompt)
     return {"extracted_text": raw_text, "analysis": analysis}
 
 
@@ -131,8 +149,7 @@ Document text:
 The citizen now asks: "{question}"
 
 Answer in {language}, based on the document content above. If the document \
-does not contain enough information to answer, say so clearly instead of \
-guessing. Keep the answer concise and end with a one-line reminder that \
+does not contain enough information to answer, explain what is missing and what standard Indian law typically provides. Keep the answer concise and end with a one-line reminder that \
 this is general information, not legal advice.
 """
-    return _call_llm(SYSTEM_PROMPT, user_prompt)
+    return _call_llm(DOCUMENT_SYSTEM_PROMPT, user_prompt)

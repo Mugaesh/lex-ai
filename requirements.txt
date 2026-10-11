@@ -5,7 +5,7 @@ chromadb==1.5.9
 deep-translator==1.11.4
 fastapi==0.141.1
 gTTS==2.5.4
-IndicTransToolkit==1.1.1
+#IndicTransToolkit==1.1.1
 openai-whisper==20250625
 pdf2image==1.17.0
 Pillow==11.3.0
